@@ -124,8 +124,6 @@ export function optionsFromParameter(parameter: string): Options {
     if (parameter.includes('nestJs=true')) {
       options.nestJs = true;
       options.lowerCaseServiceMethods = true;
-      options.outputEncodeMethods = false;
-      options.outputJsonMethods = false;
       options.outputClientImpl = false;
       options.useDate = false;
       if (parameter.includes('addNestjsRestParameter=true')) {

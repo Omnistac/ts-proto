@@ -148,6 +148,7 @@ export function generateFile(ctx: Context, fileDesc: FileDescriptorProto): [stri
       }
 
       chunks.push(code`export const ${serviceConstName} = "${serviceDesc.name}";`);
+      chunks.push(code`export const ${camelToSnake(fileDesc.package.replace(/\./g, '_'))} = { package: '${fileDesc.package}', protoPath: '${fileDesc.name}', serviceName: '${serviceDesc.name}' } as const;`);
     } else {
       // This service could be Twirp or grpc-web or JSON (maybe). So far all of their
       // interfaces are fairly similar so we share the same service interface.
@@ -408,7 +409,7 @@ function makeTimestampMethods(options: Options, longs: ReturnType<typeof makeLon
 
 // When useOptionals=true, non-scalar fields are translated into optional properties.
 function isOptionalProperty(field: FieldDescriptorProto, options: Options): boolean {
-  return (options.useOptionals && isMessage(field) && !isRepeated(field)) || field.proto3Optional;
+  return (options.useOptionals && isMessage(field) && !isRepeated(field)) || field.proto3Optional || field.label === FieldDescriptorProto.Label.LABEL_OPTIONAL;
 }
 
 // Create the interface with properties
@@ -704,7 +705,7 @@ function generateEncode(ctx: Context, fullName: string, messageDesc: DescriptorP
           ${writeSnippet(`message.${oneofName}.${fieldName}`)};
         }
       `);
-    } else if (isWithinOneOf(field)) {
+    } else if (isWithinOneOf(field) || field.label === FieldDescriptorProto.Label.LABEL_OPTIONAL) {
       // Oneofs don't have a default value check b/c they need to denote which-oneof presence
       chunks.push(code`
         if (message.${fieldName} !== undefined) {
