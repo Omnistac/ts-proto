@@ -409,7 +409,7 @@ export function toTypeName(ctx: Context, messageDesc: DescriptorProto, field: Fi
   // union with `undefined` here, either.
   const { options } = ctx;
   if (
-    (!isWithinOneOf(field) && isMessage(field) && !options.useOptionals) ||
+    (!isWithinOneOf(field) && isMessage(field) && !options.useOptionals && field.label !== FieldDescriptorProto.Label.LABEL_REQUIRED) ||
     (isWithinOneOf(field) && options.oneof === OneofOption.PROPERTIES) ||
     (isWithinOneOf(field) && field.proto3Optional)
   ) {
