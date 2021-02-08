@@ -1,0 +1,34 @@
+syntax = "proto2";
+
+package echo;
+
+// The echo service provides a convenient way for clients to test connectivity
+service EchoService {
+  // The request is received by the service and echoed back with a timestamp
+  rpc Echo(EchoRequest) returns (EchoResponse);
+
+  // Start a stream that responds with a regular interval
+  rpc StreamEcho(StreamEchoRequest) returns (stream StreamEchoResponse);
+
+  rpc BidiStreamEcho(stream EchoRequest) returns (stream StreamEchoResponse);
+}
+
+message EchoRequest {
+  required string message = 1;
+}
+
+message EchoResponse {
+  required string message = 1;
+  required int64 server_time = 2;
+}
+
+message StreamEchoRequest {
+  required string message = 1;
+  required int64 interval_millis = 2;
+}
+
+message StreamEchoResponse {
+  required string message = 1;
+  required int64 server_time = 2;
+  required int64 count = 3;
+}
