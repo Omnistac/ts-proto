@@ -7,8 +7,14 @@
   "bin": {
     "protoc-gen-ts_proto": "./protoc-gen-ts_proto"
   },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  },
   "scripts": {
     "build": "yarn tsc",
+    "commit": "git cz",
     "setup": "./pbjs.sh && ./integration/pbjs.sh && ./integration/update-bins.sh && ./integration/codegen.sh",
     "test": "yarn jest -c jest.config.js --maxWorkers=2",
     "prettier": "prettier --write {src,tests}/**/*.ts",
@@ -26,6 +32,8 @@
     "@nestjs/microservices": "^7.0.9",
     "@types/jest": "^24.0.11",
     "@types/node": "^10.7.0",
+    "commitizen": "^4.2.3",
+    "cz-conventional-changelog": "^3.3.0",
     "grpc": "^1.24.4",
     "jest": "^25.1.0",
     "prettier": "^2.0.5",
