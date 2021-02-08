@@ -326,10 +326,8 @@ function createInvokeMethod() {
             onEnd: (code: ${GrpcCode}, message: string) => {
               if (code === 0) {
                 observer.complete();
-              } else if (upStreamCodes.includes(code)) {
-                setTimeout(upStream, DEFAULT_TIMEOUT_TIME);
               } else {
-                observer.error(new Error(\`Error \${code} \${message}\`));
+                observer.error({ error: new Error(\`Error \${code} \${message}\`), code });
               }
             },
           });
