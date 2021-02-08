@@ -1,10 +1,10 @@
-import { google } from '../build/pbjs';
-import { requestType, responseObservable, responsePromise, responseType, TypeMap } from './types';
 import { Code, code, imp, joinCode } from 'ts-poet';
+import { google } from '../build/pbjs';
+import { requestType, responseObservable, responsePromise, responseType } from './types';
+import { Context } from './context';
 import MethodDescriptorProto = google.protobuf.MethodDescriptorProto;
 import FileDescriptorProto = google.protobuf.FileDescriptorProto;
 import ServiceDescriptorProto = google.protobuf.ServiceDescriptorProto;
-import { Context } from './context';
 
 const grpc = imp('grpc@@improbable-eng/grpc-web');
 const UnaryMethodDefinition = imp('UnaryMethodDefinition@@improbable-eng/grpc-web/dist/typings/service');
@@ -37,9 +37,7 @@ export function generateGrpcClientImpl(
   `);
 
   // Create a method for each FooService method
-  for (const methodDesc of serviceDesc.method) {
-    chunks.push(generateRpcMethod(ctx, serviceDesc, methodDesc));
-  }
+  serviceDesc.method.forEach((methodDesc) => chunks.push(generateRpcMethod(ctx, serviceDesc, methodDesc)));
 
   chunks.push(code`}`);
   return joinCode(chunks, { trim: false });
@@ -138,6 +136,7 @@ function methodDescName(serviceDesc: ServiceDescriptorProto, methodDesc: MethodD
 
 /** Adds misc top-level definitions for grpc-web functionality. */
 export function addGrpcWebMisc(ctx: Context, hasStreamingMethods: boolean): Code {
+  /* eslint-disable max-len */
   const { options } = ctx;
   const chunks: Code[] = [];
   chunks.push(code`
@@ -183,7 +182,7 @@ function generateGrpcWebImpl(returnObservable: boolean, hasStreamingMethods: boo
   const options = code`
     {
       transport?: grpc.TransportFactory,
-      ${hasStreamingMethods ? 'streamingTransport?: grpc.TransportFactory,' : ``}
+      ${hasStreamingMethods ? 'streamingTransport?: grpc.TransportFactory,' : ''}
       debug?: boolean,
       metadata?: grpc.Metadata,
     }

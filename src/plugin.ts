@@ -3,11 +3,11 @@ import { prefixDisableLinter, readToBuffer } from './utils';
 import { google } from '../build/pbjs';
 import { generateFile, makeUtils } from './main';
 import { createTypeMap } from './types';
+import { Context } from './context';
+import { getTsPoetOpts, optionsFromParameter } from './options';
 import CodeGeneratorRequest = google.protobuf.compiler.CodeGeneratorRequest;
 import CodeGeneratorResponse = google.protobuf.compiler.CodeGeneratorResponse;
 import Feature = google.protobuf.compiler.CodeGeneratorResponse.Feature;
-import { Context } from './context';
-import { getTsPoetOpts, optionsFromParameter } from './options';
 
 // this would be the plugin called by the protoc compiler
 async function main() {

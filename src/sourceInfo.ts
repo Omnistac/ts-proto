@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 import { google } from '../build/pbjs';
 import FileDescriptorProto = google.protobuf.FileDescriptorProto;
 
@@ -47,8 +48,11 @@ export interface SourceDescription {
 /** An empty SourceDescription for when one is not available. */
 class EmptyDescription implements SourceDescription {
   span = [];
+
   leadingComments = '';
+
   trailingComments = '';
+
   leadingDetachedComments = [];
 }
 
@@ -77,7 +81,7 @@ export default class SourceInfo implements SourceDescription {
    * path notation and returns the root SourceInfo.
    */
   static fromDescriptor(file: FileDescriptorProto) {
-    let map: SourceInfoMap = {};
+    const map: SourceInfoMap = {};
     if (file.sourceCodeInfo && file.sourceCodeInfo.location) {
       file.sourceCodeInfo.location.forEach((loc) => {
         map[loc.path.join('.')] = loc;

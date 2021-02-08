@@ -1,5 +1,5 @@
-import { maybeAddComment } from '../src/utils';
 import { Code, joinCode } from 'ts-poet';
+import { maybeAddComment } from '../src/utils';
 
 describe('utils', () => {
   describe('maybeAddComment', () => {

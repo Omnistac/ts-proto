@@ -9,5 +9,6 @@
     "experimentalDecorators": true,
     "noImplicitAny": false
   },
-  "include": ["src"]
+  "include": ["src", ".eslintrc.js", "tests"],
+  "exclude": ["node_modules", "build", "integration"]
 }
