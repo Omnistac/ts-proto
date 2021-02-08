@@ -305,10 +305,10 @@ export const StreamEchoResponse = {
 /** The echo service provides a convenient way for clients to test connectivity */
 export interface EchoService {
   /** The request is received by the service and echoed back with a timestamp */
-  Echo(request: DeepPartial<EchoRequest>, metadata?: grpc.Metadata): Promise<EchoResponse>;
+  echo(request: DeepPartial<EchoRequest>, metadata?: grpc.Metadata): Promise<EchoResponse>;
   /** Start a stream that responds with a regular interval */
-  StreamEcho(request: DeepPartial<StreamEchoRequest>, metadata?: grpc.Metadata): Observable<StreamEchoResponse>;
-  BidiStreamEcho(
+  streamEcho(request: DeepPartial<StreamEchoRequest>, metadata?: grpc.Metadata): Observable<StreamEchoResponse>;
+  bidiStreamEcho(
     request: DeepPartial<Observable<EchoRequest>>,
     metadata?: grpc.Metadata
   ): Observable<StreamEchoResponse>;
@@ -321,15 +321,15 @@ export class EchoServiceClientImpl implements EchoService {
     this.rpc = rpc;
   }
 
-  Echo(request: DeepPartial<EchoRequest>, metadata?: grpc.Metadata): Promise<EchoResponse> {
+  echo(request: DeepPartial<EchoRequest>, metadata?: grpc.Metadata): Promise<EchoResponse> {
     return this.rpc.unary(EchoServiceEchoDesc, EchoRequest.fromPartial(request), metadata);
   }
 
-  StreamEcho(request: DeepPartial<StreamEchoRequest>, metadata?: grpc.Metadata): Observable<StreamEchoResponse> {
+  streamEcho(request: DeepPartial<StreamEchoRequest>, metadata?: grpc.Metadata): Observable<StreamEchoResponse> {
     return this.rpc.invoke(EchoServiceStreamEchoDesc, StreamEchoRequest.fromPartial(request), metadata);
   }
 
-  BidiStreamEcho(
+  bidiStreamEcho(
     request: DeepPartial<Observable<EchoRequest>>,
     metadata?: grpc.Metadata
   ): Observable<StreamEchoResponse> {

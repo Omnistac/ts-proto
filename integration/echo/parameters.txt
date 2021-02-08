@@ -1,1 +1,2 @@
 outputClientImpl=grpc-web
+lowerCaseServiceMethods=true

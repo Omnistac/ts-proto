@@ -1,4 +1,5 @@
 import { Code, code, imp, joinCode } from 'ts-poet';
+import { camelCase } from 'change-case';
 import { google } from '../build/pbjs';
 import { requestType, responseObservable, responsePromise, responseType } from './types';
 import { Context } from './context';
@@ -48,15 +49,18 @@ function generateRpcMethod(ctx: Context, serviceDesc: ServiceDescriptorProto, me
   const { options } = ctx;
   const inputType = requestType(ctx, methodDesc);
   const partialInputType = code`DeepPartial<${inputType}>`;
+
   const returns =
     options.returnObservable || methodDesc.serverStreaming
       ? responseObservable(ctx, methodDesc)
       : responsePromise(ctx, methodDesc);
+
   const method = methodDesc.serverStreaming ? 'invoke' : 'unary';
+  const methodName = options.lowerCaseServiceMethods ? camelCase(methodDesc.name) : methodDesc.name;
 
   if (methodDesc.clientStreaming) {
     return code`
-      ${methodDesc.name}(
+      ${methodName}(
         request: ${partialInputType},
         metadata?: grpc.Metadata
       ): ${returns} {
@@ -66,7 +70,7 @@ function generateRpcMethod(ctx: Context, serviceDesc: ServiceDescriptorProto, me
   }
 
   return code`
-    ${methodDesc.name}(
+    ${methodName}(
       request: ${partialInputType},
       metadata?: grpc.Metadata,
     ): ${returns} {
@@ -100,7 +104,7 @@ export function generateGrpcMethodDesc(
   serviceDesc: ServiceDescriptorProto,
   methodDesc: MethodDescriptorProto
 ): Code {
-  if(methodDesc.clientStreaming) return code``;
+  if (methodDesc.clientStreaming) return code``;
   const inputType = requestType(ctx, methodDesc);
   const outputType = responseType(ctx, methodDesc);
 
