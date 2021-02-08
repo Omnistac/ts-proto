@@ -149,7 +149,11 @@ export function generateFile(ctx: Context, fileDesc: FileDescriptorProto): [stri
       }
 
       chunks.push(code`export const ${serviceConstName} = "${serviceDesc.name}";`);
-      chunks.push(code`export const ${camelToSnake(fileDesc.package.replace(/\./g, '_'))} = { package: '${fileDesc.package}', protoPath: '${fileDesc.name}', serviceName: '${serviceDesc.name}' } as const;`);
+      chunks.push(
+        code`export const ${camelToSnake(fileDesc.package.replace(/\./g, '_'))} = { package: '${
+          fileDesc.package
+        }', protoPath: '${fileDesc.name}', serviceName: '${serviceDesc.name}' } as const;`
+      );
     } else {
       // This service could be Twirp or grpc-web or JSON (maybe). So far all of their
       // interfaces are fairly similar so we share the same service interface.
@@ -187,9 +191,8 @@ export function generateFile(ctx: Context, fileDesc: FileDescriptorProto): [stri
     ...Object.values(u).map((v) => {
       if ('ifUsed' in v) {
         return code`${v.ifUsed}`;
-      } else {
-        return code``;
       }
+      return code``;
     })
   );
 
@@ -274,10 +277,17 @@ function makeLongUtils(options: Options, bytes: ReturnType<typeof makeByteUtils>
     `
   );
 
-  return { numberToLong, longToNumber, longToString, longInit: init, Long };
+  return {
+    numberToLong,
+    longToNumber,
+    longToString,
+    longInit: init,
+    Long,
+  };
 }
 
 function makeByteUtils() {
+  /* eslint-disable max-len */
   const globalThis = conditionalOutput(
     'globalThis',
     code`
@@ -320,6 +330,7 @@ function makeByteUtils() {
       }
     `
   );
+  /* eslint-enable max-len */
   return { globalThis, bytesFromBase64, base64FromBytes };
 }
 
@@ -410,7 +421,11 @@ function makeTimestampMethods(options: Options, longs: ReturnType<typeof makeLon
 
 // When useOptionals=true, non-scalar fields are translated into optional properties.
 function isOptionalProperty(field: FieldDescriptorProto, options: Options): boolean {
-  return (options.useOptionals && isMessage(field) && !isRepeated(field)) || field.proto3Optional || field.label === FieldDescriptorProto.Label.LABEL_OPTIONAL;
+  return (
+    (options.useOptionals && isMessage(field) && !isRepeated(field)) ||
+    field.proto3Optional ||
+    field.label === FieldDescriptorProto.Label.LABEL_OPTIONAL
+  );
 }
 
 // Create the interface with properties
@@ -462,8 +477,8 @@ function generateOneofProperty(
   const fields = messageDesc.field.filter((field) => isWithinOneOf(field) && field.oneofIndex === oneofIndex);
   const unionType = joinCode(
     fields.map((f) => {
-      let fieldName = maybeSnakeToCamel(f.name, options);
-      let typeName = toTypeName(ctx, messageDesc, f);
+      const fieldName = maybeSnakeToCamel(f.name, options);
+      const typeName = toTypeName(ctx, messageDesc, f);
       return code`{ $case: '${fieldName}', ${fieldName}: ${typeName} }`;
     }),
     { on: ' | ' }
@@ -611,7 +626,7 @@ function generateDecode(ctx: Context, fullName: string, messageDesc: DescriptorP
         `);
       }
     } else if (isWithinOneOfThatShouldBeUnion(options, field)) {
-      let oneofName = maybeSnakeToCamel(messageDesc.oneofDecl[field.oneofIndex].name, options);
+      const oneofName = maybeSnakeToCamel(messageDesc.oneofDecl[field.oneofIndex].name, options);
       chunks.push(code`message.${oneofName} = { $case: '${fieldName}', ${fieldName}: ${readSnippet} };`);
     } else {
       chunks.push(code`message.${fieldName} = ${readSnippet};`);
@@ -700,7 +715,7 @@ function generateEncode(ctx: Context, fullName: string, messageDesc: DescriptorP
         `);
       }
     } else if (isWithinOneOfThatShouldBeUnion(options, field)) {
-      let oneofName = maybeSnakeToCamel(messageDesc.oneofDecl[field.oneofIndex].name, options);
+      const oneofName = maybeSnakeToCamel(messageDesc.oneofDecl[field.oneofIndex].name, options);
       chunks.push(code`
         if (message.${oneofName}?.$case === '${fieldName}') {
           ${writeSnippet(`message.${oneofName}.${fieldName}`)};
@@ -761,33 +776,36 @@ function generateFromJson(ctx: Context, fullName: string, messageDesc: Descripto
       if (isEnum(field)) {
         const fromJson = getEnumMethod(typeMap, field.typeName, 'FromJSON');
         return code`${fromJson}(${from})`;
-      } else if (isPrimitive(field)) {
+      }
+      if (isPrimitive(field)) {
         // Convert primitives using the String(value)/Number(value)/bytesFromBase64(value)
         if (isBytes(field)) {
           if (options.env === EnvOption.NODE) {
             return code`Buffer.from(${utils.bytesFromBase64}(${from}))`;
-          } else {
-            return code`${utils.bytesFromBase64}(${from})`;
           }
-        } else if (isLong(field) && options.forceLong === LongOption.LONG) {
+          return code`${utils.bytesFromBase64}(${from})`;
+        }
+        if (isLong(field) && options.forceLong === LongOption.LONG) {
           const cstr = capitalize(basicTypeName(ctx, field, { keepValueType: true }).toCodeString());
           return code`${cstr}.fromString(${from})`;
-        } else {
-          const cstr = capitalize(basicTypeName(ctx, field, { keepValueType: true }).toCodeString());
-          return code`${cstr}(${from})`;
         }
-      } else if (isTimestamp(field)) {
+        const cstr = capitalize(basicTypeName(ctx, field, { keepValueType: true }).toCodeString());
+        return code`${cstr}(${from})`;
+      }
+      if (isTimestamp(field)) {
         return code`${utils.fromJsonTimestamp}(${from})`;
-      } else if (isValueType(ctx, field)) {
+      }
+      if (isValueType(ctx, field)) {
         const valueType = valueTypeName(ctx, field.typeName)!;
         if (isLongValueType(field)) {
           return code`${capitalize(valueType.toCodeString())}.fromValue(${from})`;
-        } else if (isBytesValueType(field)) {
-          return code`new ${capitalize(valueType.toCodeString())}(${from})`;
-        } else {
-          return code`${capitalize(valueType.toCodeString())}(${from})`;
         }
-      } else if (isMessage(field)) {
+        if (isBytesValueType(field)) {
+          return code`new ${capitalize(valueType.toCodeString())}(${from})`;
+        }
+        return code`${capitalize(valueType.toCodeString())}(${from})`;
+      }
+      if (isMessage(field)) {
         if (isRepeated(field) && isMapType(ctx, messageDesc, field)) {
           const valueType = (typeMap.get(field.typeName)![2] as DescriptorProto).field[1];
           if (isPrimitive(valueType)) {
@@ -795,28 +813,25 @@ function generateFromJson(ctx: Context, fullName: string, messageDesc: Descripto
             if (isBytes(valueType)) {
               if (options.env === EnvOption.NODE) {
                 return code`Buffer.from(${utils.bytesFromBase64}(${from} as string))`;
-              } else {
-                return code`${utils.bytesFromBase64}(${from} as string)`;
               }
-            } else if (isEnum(valueType)) {
-              return code`${from} as number`;
-            } else {
-              const cstr = capitalize(basicTypeName(ctx, valueType).toCodeString());
-              return code`${cstr}(${from})`;
+              return code`${utils.bytesFromBase64}(${from} as string)`;
             }
-          } else if (isTimestamp(valueType)) {
-            return code`${utils.fromJsonTimestamp}(${from})`;
-          } else {
-            const type = basicTypeName(ctx, valueType);
-            return code`${type}.fromJSON(${from})`;
+            if (isEnum(valueType)) {
+              return code`${from} as number`;
+            }
+            const cstr = capitalize(basicTypeName(ctx, valueType).toCodeString());
+            return code`${cstr}(${from})`;
           }
-        } else {
-          const type = basicTypeName(ctx, field);
+          if (isTimestamp(valueType)) {
+            return code`${utils.fromJsonTimestamp}(${from})`;
+          }
+          const type = basicTypeName(ctx, valueType);
           return code`${type}.fromJSON(${from})`;
         }
-      } else {
-        throw new Error(`Unhandled field ${field}`);
+        const type = basicTypeName(ctx, field);
+        return code`${type}.fromJSON(${from})`;
       }
+      throw new Error(`Unhandled field ${field}`);
     };
 
     // and then use the snippet to handle repeated fields if necessary
@@ -883,39 +898,44 @@ function generateToJson(ctx: Context, fullName: string, messageDesc: DescriptorP
         return isWithinOneOf(field)
           ? code`${from} !== undefined ? ${toJson}(${from}) : undefined`
           : code`${toJson}(${from})`;
-      } else if (isTimestamp(field)) {
+      }
+      if (isTimestamp(field)) {
         return code`${from} !== undefined ? ${from}.toISOString() : null`;
-      } else if (isMapType(ctx, messageDesc, field)) {
+      }
+      if (isMapType(ctx, messageDesc, field)) {
         // For map types, drill-in and then admittedly re-hard-code our per-value-type logic
         const valueType = (typeMap.get(field.typeName)![2] as DescriptorProto).field[1];
         if (isEnum(valueType)) {
           const toJson = getEnumMethod(typeMap, valueType.typeName, 'ToJSON');
           return code`${toJson}(${from})`;
-        } else if (isBytes(valueType)) {
-          return code`${utils.base64FromBytes}(${from})`;
-        } else if (isTimestamp(valueType)) {
-          return code`${from}.toISOString()`;
-        } else if (isPrimitive(valueType)) {
-          return code`${from}`;
-        } else {
-          const type = basicTypeName(ctx, valueType);
-          return code`${type}.toJSON(${from})`;
         }
-      } else if (isMessage(field) && !isValueType(ctx, field) && !isMapType(ctx, messageDesc, field)) {
+        if (isBytes(valueType)) {
+          return code`${utils.base64FromBytes}(${from})`;
+        }
+        if (isTimestamp(valueType)) {
+          return code`${from}.toISOString()`;
+        }
+        if (isPrimitive(valueType)) {
+          return code`${from}`;
+        }
+        const type = basicTypeName(ctx, valueType);
+        return code`${type}.toJSON(${from})`;
+      }
+      if (isMessage(field) && !isValueType(ctx, field) && !isMapType(ctx, messageDesc, field)) {
         const type = basicTypeName(ctx, field, { keepValueType: true });
         return code`${from} ? ${type}.toJSON(${from}) : ${defaultValue(ctx, field)}`;
-      } else if (isBytes(field)) {
+      }
+      if (isBytes(field)) {
         if (isWithinOneOf(field)) {
           return code`${from} !== undefined ? ${utils.base64FromBytes}(${from}) : undefined`;
-        } else {
-          return code`${utils.base64FromBytes}(${from} !== undefined ? ${from} : ${defaultValue(ctx, field)})`;
         }
-      } else if (isLong(field) && options.forceLong === LongOption.LONG) {
+        return code`${utils.base64FromBytes}(${from} !== undefined ? ${from} : ${defaultValue(ctx, field)})`;
+      }
+      if (isLong(field) && options.forceLong === LongOption.LONG) {
         const v = isWithinOneOf(field) ? 'undefined' : defaultValue(ctx, field);
         return code`(${from} || ${v}).toString()`;
-      } else {
-        return code`${from}`;
       }
+      return code`${from}`;
     };
 
     if (isMapType(ctx, messageDesc, field)) {
@@ -977,31 +997,30 @@ function generateFromPartial(ctx: Context, fullName: string, messageDesc: Descri
     const readSnippet = (from: string): Code => {
       if (isEnum(field) || isPrimitive(field) || isTimestamp(field) || isValueType(ctx, field)) {
         return code`${from}`;
-      } else if (isMessage(field)) {
+      }
+      if (isMessage(field)) {
         if (isRepeated(field) && isMapType(ctx, messageDesc, field)) {
           const valueType = (typeMap.get(field.typeName)![2] as DescriptorProto).field[1];
           if (isPrimitive(valueType)) {
             if (isBytes(valueType)) {
               return code`${from}`;
-            } else if (isEnum(valueType)) {
-              return code`${from} as number`;
-            } else {
-              const cstr = capitalize(basicTypeName(ctx, valueType).toCodeString());
-              return code`${cstr}(${from})`;
             }
-          } else if (isTimestamp(valueType)) {
-            return code`${from}`;
-          } else {
-            const type = basicTypeName(ctx, valueType);
-            return code`${type}.fromPartial(${from})`;
+            if (isEnum(valueType)) {
+              return code`${from} as number`;
+            }
+            const cstr = capitalize(basicTypeName(ctx, valueType).toCodeString());
+            return code`${cstr}(${from})`;
           }
-        } else {
-          const type = basicTypeName(ctx, field);
+          if (isTimestamp(valueType)) {
+            return code`${from}`;
+          }
+          const type = basicTypeName(ctx, valueType);
           return code`${type}.fromPartial(${from})`;
         }
-      } else {
-        throw new Error(`Unhandled field ${field}`);
+        const type = basicTypeName(ctx, field);
+        return code`${type}.fromPartial(${from})`;
       }
+      throw new Error(`Unhandled field ${field}`);
     };
 
     // and then use the snippet to handle repeated fields if necessary
@@ -1024,7 +1043,7 @@ function generateFromPartial(ctx: Context, fullName: string, messageDesc: Descri
         `);
       }
     } else if (isWithinOneOfThatShouldBeUnion(options, field)) {
-      let oneofName = maybeSnakeToCamel(messageDesc.oneofDecl[field.oneofIndex].name, options);
+      const oneofName = maybeSnakeToCamel(messageDesc.oneofDecl[field.oneofIndex].name, options);
       const v = readSnippet(`object.${oneofName}.${fieldName}`);
       chunks.push(code`
         if (
@@ -1071,7 +1090,6 @@ function maybeCastToNumber(
   const { keyType } = detectMapType(ctx, messageDesc, field)!;
   if (keyType.toCodeString() === 'string') {
     return variableName;
-  } else {
-    return `Number(${variableName})`;
   }
+  return `Number(${variableName})`;
 }

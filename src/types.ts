@@ -1,10 +1,11 @@
-import { google } from '../build/pbjs';
 import { code, Code, imp, Import } from 'ts-poet';
+import { google } from '../build/pbjs';
 import { EnvOption, LongOption, OneofOption, Options } from './options';
 import { visit } from './visit';
 import { fail } from './utils';
 import SourceInfo from './sourceInfo';
 import { camelCase } from './case';
+import { Context } from './context';
 import FieldDescriptorProto = google.protobuf.FieldDescriptorProto;
 import CodeGeneratorRequest = google.protobuf.compiler.CodeGeneratorRequest;
 import EnumDescriptorProto = google.protobuf.EnumDescriptorProto;
@@ -12,7 +13,6 @@ import FileDescriptorProto = google.protobuf.FileDescriptorProto;
 import DescriptorProto = google.protobuf.DescriptorProto;
 import MethodDescriptorProto = google.protobuf.MethodDescriptorProto;
 import ServiceDescriptorProto = google.protobuf.ServiceDescriptorProto;
-import { Context } from './context';
 
 /** Based on https://github.com/dcodeIO/protobuf.js/blob/master/src/types.js#L37. */
 export function basicWireType(type: FieldDescriptorProto.Type): number {
@@ -42,7 +42,7 @@ export function basicWireType(type: FieldDescriptorProto.Type): number {
     case FieldDescriptorProto.Type.TYPE_BYTES:
       return 2;
     default:
-      throw new Error('Invalid type ' + type);
+      throw new Error(`Invalid type ${type}`);
   }
 }
 
@@ -90,9 +90,9 @@ export function basicTypeName(
     case FieldDescriptorProto.Type.TYPE_BYTES:
       if (options.env === EnvOption.NODE) {
         return code`Buffer`;
-      } else {
-        return code`Uint8Array`;
       }
+      return code`Uint8Array`;
+
     case FieldDescriptorProto.Type.TYPE_MESSAGE:
     case FieldDescriptorProto.Type.TYPE_ENUM:
       return messageToTypeName(ctx, field.typeName, { ...typeOptions, repeated: isRepeated(field) });
@@ -179,7 +179,7 @@ export function defaultValue(ctx: Context, field: FieldDescriptorProto): any {
     case FieldDescriptorProto.Type.TYPE_FIXED32:
     case FieldDescriptorProto.Type.TYPE_SFIXED32:
       return 0;
-    case FieldDescriptorProto.Type.TYPE_ENUM:
+    case FieldDescriptorProto.Type.TYPE_ENUM: {
       // proto3 enforces enums starting at 0, however proto2 does not, so we have
       // to probe and see if zero is an allowed value. If it's not, pick the first one.
       // This is probably not great, but it's only used in fromJSON and fromPartial,
@@ -189,28 +189,30 @@ export function defaultValue(ctx: Context, field: FieldDescriptorProto): any {
       if (options.stringEnums) {
         const enumType = messageToTypeName(ctx, field.typeName);
         return code`${enumType}.${zerothValue.name}`;
-      } else {
-        return zerothValue.number;
       }
+      return zerothValue.number;
+    }
     case FieldDescriptorProto.Type.TYPE_UINT64:
     case FieldDescriptorProto.Type.TYPE_FIXED64:
       if (options.forceLong === LongOption.LONG) {
         return code`${utils.Long}.UZERO`;
-      } else if (options.forceLong === LongOption.STRING) {
-        return '"0"';
-      } else {
-        return 0;
       }
+      if (options.forceLong === LongOption.STRING) {
+        return '"0"';
+      }
+      return 0;
+
     case FieldDescriptorProto.Type.TYPE_INT64:
     case FieldDescriptorProto.Type.TYPE_SINT64:
     case FieldDescriptorProto.Type.TYPE_SFIXED64:
       if (options.forceLong === LongOption.LONG) {
         return code`${utils.Long}.ZERO`;
-      } else if (options.forceLong === LongOption.STRING) {
-        return '"0"';
-      } else {
-        return 0;
       }
+      if (options.forceLong === LongOption.STRING) {
+        return '"0"';
+      }
+      return 0;
+
     case FieldDescriptorProto.Type.TYPE_BOOL:
       return false;
     case FieldDescriptorProto.Type.TYPE_STRING:
@@ -218,9 +220,9 @@ export function defaultValue(ctx: Context, field: FieldDescriptorProto): any {
     case FieldDescriptorProto.Type.TYPE_BYTES:
       if (options.env === EnvOption.NODE) {
         return 'new Buffer(0)';
-      } else {
-        return 'new Uint8Array()';
       }
+      return 'new Uint8Array()';
+
     case FieldDescriptorProto.Type.TYPE_MESSAGE:
     default:
       return 'undefined';
@@ -233,22 +235,25 @@ export type TypeMap = Map<string, [string, string, DescriptorProto | EnumDescrip
 /** Scans all of the proto files in `request` and builds a map of proto typeName -> TS module/name. */
 export function createTypeMap(request: CodeGeneratorRequest, options: Options): TypeMap {
   const typeMap: TypeMap = new Map();
-  for (const file of request.protoFile) {
+
+  const saveMapping = (file: FileDescriptorProto, moduleName: string) => (
+    tsFullName: string,
+    desc: DescriptorProto | EnumDescriptorProto,
+    s: SourceInfo,
+    protoFullName: string
+  ) => {
+    // package is optional, but make sure we have a dot-prefixed type name either way
+    const prefix = file.package.length === 0 ? '' : `.${file.package}`;
+    typeMap.set(`${prefix}.${protoFullName}`, [moduleName, tsFullName, desc]);
+  };
+
+  request.protoFile.forEach((file) => {
     // We assume a file.name of google/protobuf/wrappers.proto --> a module path of google/protobuf/wrapper.ts
     const moduleName = file.name.replace('.proto', '');
     // So given a fullName like FooMessage_InnerMessage, proto will see that as package.name.FooMessage.InnerMessage
-    function saveMapping(
-      tsFullName: string,
-      desc: DescriptorProto | EnumDescriptorProto,
-      s: SourceInfo,
-      protoFullName: string
-    ): void {
-      // package is optional, but make sure we have a dot-prefixed type name either way
-      const prefix = file.package.length === 0 ? '' : `.${file.package}`;
-      typeMap.set(`${prefix}.${protoFullName}`, [moduleName, tsFullName, desc]);
-    }
-    visit(file, SourceInfo.empty(), saveMapping, options, saveMapping);
-  }
+    visit(file, SourceInfo.empty(), saveMapping(file, moduleName), options, saveMapping(file, moduleName));
+  });
+
   return typeMap;
 }
 
@@ -269,7 +274,7 @@ export function isEnum(field: FieldDescriptorProto): boolean {
 }
 
 export function isWithinOneOf(field: FieldDescriptorProto): boolean {
-  return field.hasOwnProperty('oneofIndex');
+  return Object.prototype.hasOwnProperty.call(field, 'oneofIndex');
 }
 
 export function isWithinOneOfThatShouldBeUnion(options: Options, field: FieldDescriptorProto): boolean {
@@ -334,11 +339,11 @@ function longTypeName(ctx: Context): Code {
   const { options, utils } = ctx;
   if (options.forceLong === LongOption.LONG) {
     return code`${utils.Long}`;
-  } else if (options.forceLong === LongOption.STRING) {
-    return code`string`;
-  } else {
-    return code`number`;
   }
+  if (options.forceLong === LongOption.STRING) {
+    return code`string`;
+  }
+  return code`number`;
 }
 
 /** Maps `.some_proto_namespace.Message` to a TypeName. */
@@ -354,7 +359,7 @@ export function messageToTypeName(
   // - If the field is repeated, values cannot be undefined.
   // - If useOptionals=true, all non-scalar types are already optional
   //   properties, so there's no need for that union.
-  let valueType = valueTypeName(ctx, protoType);
+  const valueType = valueTypeName(ctx, protoType);
   if (!typeOptions.keepValueType && valueType) {
     if (!!typeOptions.repeated || options.useOptionals) {
       return valueType;
@@ -381,7 +386,7 @@ export function getEnumMethod(typeMap: TypeMap, enumProtoType: string, methodSuf
 
 /** Return the TypeName for any field (primitive/message/etc.) as exposed in the interface. */
 export function toTypeName(ctx: Context, messageDesc: DescriptorProto, field: FieldDescriptorProto): Code {
-  let type = basicTypeName(ctx, field, { keepValueType: false });
+  const type = basicTypeName(ctx, field, { keepValueType: false });
   if (isRepeated(field)) {
     const mapType = detectMapType(ctx, messageDesc, field);
     if (mapType) {
@@ -409,7 +414,10 @@ export function toTypeName(ctx: Context, messageDesc: DescriptorProto, field: Fi
   // union with `undefined` here, either.
   const { options } = ctx;
   if (
-    (!isWithinOneOf(field) && isMessage(field) && !options.useOptionals && field.label !== FieldDescriptorProto.Label.LABEL_REQUIRED) ||
+    (!isWithinOneOf(field) &&
+      isMessage(field) &&
+      !options.useOptionals &&
+      field.label !== FieldDescriptorProto.Label.LABEL_REQUIRED) ||
     (isWithinOneOf(field) && options.oneof === OneofOption.PROPERTIES) ||
     (isWithinOneOf(field) && field.proto3Optional)
   ) {
@@ -440,7 +448,7 @@ export function detectMapType(
 }
 
 export function requestType(ctx: Context, methodDesc: MethodDescriptorProto): Code {
-  let typeName = messageToTypeName(ctx, methodDesc.inputType);
+  const typeName = messageToTypeName(ctx, methodDesc.inputType);
   if (methodDesc.clientStreaming) {
     return code`${imp('Observable@rxjs')}<${typeName}>`;
   }
@@ -512,5 +520,5 @@ export function detectBatchMethod(
 }
 
 function hasSingleRepeatedField(messageDesc: DescriptorProto): boolean {
-  return messageDesc.field.length == 1 && messageDesc.field[0].label === FieldDescriptorProto.Label.LABEL_REPEATED;
+  return messageDesc.field.length === 1 && messageDesc.field[0].label === FieldDescriptorProto.Label.LABEL_REPEATED;
 }

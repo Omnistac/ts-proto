@@ -1,10 +1,10 @@
 import { google } from '../build/pbjs';
-import DescriptorProto = google.protobuf.DescriptorProto;
-import FileDescriptorProto = google.protobuf.FileDescriptorProto;
-import EnumDescriptorProto = google.protobuf.EnumDescriptorProto;
 import SourceInfo, { Fields } from './sourceInfo';
 import { Options } from './options';
 import { maybeSnakeToCamel } from './case';
+import DescriptorProto = google.protobuf.DescriptorProto;
+import FileDescriptorProto = google.protobuf.FileDescriptorProto;
+import EnumDescriptorProto = google.protobuf.EnumDescriptorProto;
 
 type MessageVisitor = (
   fullName: string,
@@ -51,7 +51,7 @@ export function visit(
     const tsFullName = tsPrefix + maybeSnakeToCamel(messageName(message), options);
     const nestedSourceInfo = sourceInfo.open(childType, index);
     messageFn(tsFullName, message, nestedSourceInfo, protoFullName);
-    visit(message, nestedSourceInfo, messageFn, options, enumFn, tsFullName + '_', protoFullName + '.');
+    visit(message, nestedSourceInfo, messageFn, options, enumFn, `${tsFullName}_`, `${protoFullName}.`);
   });
 }
 

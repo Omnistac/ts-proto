@@ -1,3 +1,4 @@
+import { Code, code, imp, joinCode } from 'ts-poet';
 import { google } from '../build/pbjs';
 import {
   BatchMethod,
@@ -7,15 +8,14 @@ import {
   responsePromise,
   responseType,
 } from './types';
-import { Code, code, imp, joinCode } from 'ts-poet';
 import { maybeAddComment, singular } from './utils';
 import SourceInfo, { Fields } from './sourceInfo';
 import { camelCase } from './case';
 import { contextTypeVar } from './main';
+import { Context } from './context';
 import MethodDescriptorProto = google.protobuf.MethodDescriptorProto;
 import FileDescriptorProto = google.protobuf.FileDescriptorProto;
 import ServiceDescriptorProto = google.protobuf.ServiceDescriptorProto;
-import { Context } from './context';
 
 const hash = imp('hash*object-hash');
 const dataloader = imp('DataLoader*dataloader');
@@ -74,7 +74,8 @@ export function generateService(
       params.push(code`...rest: any`);
     }
 
-    // Return observable for interface only configuration, passing returnObservable=true and methodDesc.serverStreaming=true
+    // Return observable for interface only configuration,
+    // passing returnObservable=true and methodDesc.serverStreaming=true
     let returnType: Code;
     if (options.returnObservable || methodDesc.serverStreaming) {
       returnType = responseObservable(ctx, methodDesc);
@@ -137,6 +138,7 @@ export function generateServiceClientImpl(
   fileDesc: FileDescriptorProto,
   serviceDesc: ServiceDescriptorProto
 ): Code {
+  /* eslint-disable no-restricted-syntax */
   const { options } = ctx;
   const chunks: Code[] = [];
 
@@ -229,6 +231,7 @@ function generateCachingRpcMethod(
   serviceDesc: ServiceDescriptorProto,
   methodDesc: MethodDescriptorProto
 ): Code {
+  /* eslint-disable max-len */
   const inputType = requestType(ctx, methodDesc);
   const outputType = responseType(ctx, methodDesc);
   const uniqueIdentifier = `${fileDesc.package}.${serviceDesc.name}.${methodDesc.name}`;

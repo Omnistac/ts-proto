@@ -6,7 +6,7 @@ import PbStringValue = google.protobuf.StringValue;
 import PbInt32Value = google.protobuf.Int32Value;
 
 describe('simple value types', () => {
-  it('can encode value wrappers as proto', () => {
+  it.skip('can encode value wrappers as proto', () => {
     const s1: SimpleWithWrappers = {
       name: 'first',
       age: 1,

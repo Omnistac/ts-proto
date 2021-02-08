@@ -1,3 +1,4 @@
+import { Code, code, imp, joinCode } from 'ts-poet';
 import {
   detectBatchMethod,
   isEmptyType,
@@ -9,12 +10,11 @@ import {
 import SourceInfo, { Fields } from './sourceInfo';
 import { contextTypeVar } from './main';
 import { google } from '../build/pbjs';
-import { Code, code, imp, joinCode } from 'ts-poet';
-import FileDescriptorProto = google.protobuf.FileDescriptorProto;
-import ServiceDescriptorProto = google.protobuf.ServiceDescriptorProto;
 import { maybeAddComment, singular } from './utils';
 import { camelCase } from './case';
 import { Context } from './context';
+import FileDescriptorProto = google.protobuf.FileDescriptorProto;
+import ServiceDescriptorProto = google.protobuf.ServiceDescriptorProto;
 
 export function generateNestjsServiceController(
   ctx: Context,
@@ -49,7 +49,8 @@ export function generateNestjsServiceController(
       params.push(code`...rest: any`);
     }
 
-    // Return observable for interface only configuration, passing returnObservable=true and methodDesc.serverStreaming=true
+    // Return observable for interface only configuration,
+    // passing returnObservable=true and methodDesc.serverStreaming=true
     let returns: Code;
     if (isEmptyType(methodDesc.outputType)) {
       returns = code`void`;
@@ -98,14 +99,14 @@ export function generateNestjsServiceClient(
   const chunks: Code[] = [];
 
   maybeAddComment(sourceInfo, chunks);
-  const t = options.useContext ? `<${contextTypeVar}>` : ``;
+  const t = options.useContext ? `<${contextTypeVar}>` : '';
   chunks.push(code`
     export interface ${serviceDesc.name}Client${t} {
   `);
 
   serviceDesc.method.forEach((methodDesc, index) => {
     if (options.lowerCaseServiceMethods) {
-      methodDesc.name = camelCase(methodDesc.name);
+      methodDesc.name = camelCase(methodDesc.name); // eslint-disable-line no-param-reassign
     }
 
     const params: Code[] = [];
@@ -137,7 +138,7 @@ export function generateNestjsServiceClient(
       const batchMethod = detectBatchMethod(ctx, fileDesc, serviceDesc, methodDesc);
       if (batchMethod) {
         const name = batchMethod.methodDesc.name.replace('Batch', 'Get');
-        const maybeContext = options.useContext ? `ctx: Context,` : '';
+        const maybeContext = options.useContext ? 'ctx: Context,' : '';
         chunks.push(code`
           ${name}(
             ${maybeContext}

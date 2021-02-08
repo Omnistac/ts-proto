@@ -2,18 +2,13 @@ import { Options } from './options';
 
 export function maybeSnakeToCamel(s: string, options: Options): string {
   if (options.snakeToCamel) {
-    return s.replace(/(\_\w)/g, (m) => m[1].toUpperCase());
-  } else {
-    return s;
+    return s.replace(/(_\w)/g, (m) => m[1].toUpperCase());
   }
+  return s;
 }
 
 export function camelToSnake(s: string): string {
-  return s
-    .replace(/[\w]([A-Z])/g, function (m) {
-      return m[0] + '_' + m[1];
-    })
-    .toUpperCase();
+  return s.replace(/[\w]([A-Z])/g, (m) => `${m[0]}_${m[1]}`).toUpperCase();
 }
 
 export function capitalize(s: string): string {

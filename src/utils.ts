@@ -1,8 +1,9 @@
-import ReadStream = NodeJS.ReadStream;
-import { SourceDescription } from './sourceInfo';
 import { code, Code } from 'ts-poet';
+import { SourceDescription } from './sourceInfo';
+import ReadStream = NodeJS.ReadStream;
 
 export function readToBuffer(stream: ReadStream): Promise<Buffer> {
+  /* eslint-disable no-cond-assign */
   return new Promise((resolve) => {
     const ret: Array<Buffer | string> = [];
     let len = 0;

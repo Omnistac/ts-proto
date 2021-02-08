@@ -1,10 +1,10 @@
-import { google } from '../build/pbjs';
 import { code, Code, joinCode } from 'ts-poet';
+import { google } from '../build/pbjs';
 import { maybeAddComment } from './utils';
-import EnumDescriptorProto = google.protobuf.EnumDescriptorProto;
 import { camelCase } from './case';
 import SourceInfo, { Fields } from './sourceInfo';
 import { Context } from './context';
+import EnumDescriptorProto = google.protobuf.EnumDescriptorProto;
 
 const UNRECOGNIZED_ENUM_NAME = 'UNRECOGNIZED';
 const UNRECOGNIZED_ENUM_VALUE = -1;
@@ -30,11 +30,12 @@ export function generateEnum(
     );
   });
 
-  if (options.addUnrecognizedEnum)
+  if (options.addUnrecognizedEnum) {
     chunks.push(code`
       ${UNRECOGNIZED_ENUM_NAME} = ${
       options.stringEnums ? `"${UNRECOGNIZED_ENUM_NAME}"` : UNRECOGNIZED_ENUM_VALUE.toString()
     },`);
+  }
   chunks.push(code`}`);
 
   if (options.outputJsonMethods) {
@@ -55,13 +56,13 @@ export function generateEnumFromJson(ctx: Context, fullName: string, enumDesc: E
   chunks.push(code`export function ${camelCase(fullName)}FromJSON(object: any): ${fullName} {`);
   chunks.push(code`switch (object) {`);
 
-  for (const valueDesc of enumDesc.value) {
+  enumDesc.value.forEach((valueDesc) =>
     chunks.push(code`
-      case ${valueDesc.number}:
-      case "${valueDesc.name}":
-        return ${fullName}.${valueDesc.name};
-    `);
-  }
+    case ${valueDesc.number}:
+    case "${valueDesc.name}":
+      return ${fullName}.${valueDesc.name};
+    `)
+  );
 
   if (options.addUnrecognizedEnum) {
     chunks.push(code`
@@ -90,9 +91,10 @@ export function generateEnumToJson(fullName: string, enumDesc: EnumDescriptorPro
   chunks.push(code`export function ${camelCase(fullName)}ToJSON(object: ${fullName}): string {`);
   chunks.push(code`switch (object) {`);
 
-  for (const valueDesc of enumDesc.value) {
-    chunks.push(code`case ${fullName}.${valueDesc.name}: return "${valueDesc.name}";`);
-  }
+  enumDesc.value.forEach((valueDesc) =>
+    chunks.push(code`case ${fullName}.${valueDesc.name}: return "${valueDesc.name}";`)
+  );
+
   chunks.push(code`default: return "UNKNOWN";`);
 
   chunks.push(code`}`);
