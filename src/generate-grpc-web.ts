@@ -9,7 +9,6 @@ import ServiceDescriptorProto = google.protobuf.ServiceDescriptorProto;
 
 const grpc = imp('grpc@@improbable-eng/grpc-web');
 const UnaryMethodDefinition = imp('UnaryMethodDefinition@@improbable-eng/grpc-web/dist/typings/service');
-const share = imp('share@rxjs/operators');
 const take = imp('take@rxjs/operators');
 const BrowserHeaders = imp('BrowserHeaders@browser-headers');
 const Observable = imp('Observable@rxjs');
@@ -315,25 +314,22 @@ function createInvokeMethod() {
         ? new ${BrowserHeaders}({ ...this.options?.metadata.headersMap, ...metadata?.headersMap })
         : metadata || this.options.metadata;
       return new Observable(observer => {
-        const upStream = (() => {
-          ${grpc}.invoke(methodDesc, {
-            host: this.host,
-            request,
-            transport: this.options.streamingTransport || this.options.transport,
-            metadata: maybeCombinedMetadata,
-            debug: this.options.debug,
-            onMessage: (next) => observer.next(next),
-            onEnd: (code: ${GrpcCode}, message: string) => {
-              if (code === 0) {
-                observer.complete();
-              } else {
-                observer.error({ error: new Error(\`Error \${code} \${message}\`), code });
-              }
-            },
-          });
+        ${grpc}.invoke(methodDesc, {
+          host: this.host,
+          request,
+          transport: this.options.streamingTransport || this.options.transport,
+          metadata: maybeCombinedMetadata,
+          debug: this.options.debug,
+          onMessage: (next) => observer.next(next),
+          onEnd: (code: ${GrpcCode}, message: string) => {
+            if (code === 0) {
+              observer.complete();
+            } else {
+              observer.error({ error: new Error(\`Error \${code} \${message}\`), code });
+            }
+          },
         });
-        upStream();
-      }).pipe(${share}());
+      });
     }
   `;
 }
