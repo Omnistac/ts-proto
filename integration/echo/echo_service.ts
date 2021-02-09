@@ -4,7 +4,6 @@ import { Observable } from 'rxjs';
 import { BrowserHeaders } from 'browser-headers';
 import { grpc } from '@improbable-eng/grpc-web';
 import { Code } from '@improbable-eng/grpc-web/dist/typings/Code';
-import { share } from 'rxjs/operators';
 import * as Long from 'long';
 import { util, configure, Writer, Reader } from 'protobufjs/minimal';
 
@@ -472,27 +471,22 @@ export class GrpcWebImpl {
         ? new BrowserHeaders({ ...this.options?.metadata.headersMap, ...metadata?.headersMap })
         : metadata || this.options.metadata;
     return new Observable((observer) => {
-      const upStream = () => {
-        grpc.invoke(methodDesc, {
-          host: this.host,
-          request,
-          transport: this.options.streamingTransport || this.options.transport,
-          metadata: maybeCombinedMetadata,
-          debug: this.options.debug,
-          onMessage: (next) => observer.next(next),
-          onEnd: (code: Code, message: string) => {
-            if (code === 0) {
-              observer.complete();
-            } else if (upStreamCodes.includes(code)) {
-              setTimeout(upStream, DEFAULT_TIMEOUT_TIME);
-            } else {
-              observer.error(new Error(`Error ${code} ${message}`));
-            }
-          },
-        });
-      };
-      upStream();
-    }).pipe(share());
+      grpc.invoke(methodDesc, {
+        host: this.host,
+        request,
+        transport: this.options.streamingTransport || this.options.transport,
+        metadata: maybeCombinedMetadata,
+        debug: this.options.debug,
+        onMessage: (next) => observer.next(next),
+        onEnd: (code: Code, message: string) => {
+          if (code === 0) {
+            observer.complete();
+          } else {
+            observer.error({ error: new Error(`Error ${code} ${message}`), code });
+          }
+        },
+      });
+    });
   }
 }
 
