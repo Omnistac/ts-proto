@@ -1,5 +1,5 @@
 import { Code, code, imp, joinCode } from 'ts-poet';
-import { camelCase } from 'change-case';
+import { camelCase } from './case';
 import { google } from '../build/pbjs';
 import { requestType, responseObservable, responsePromise, responseType } from './types';
 import { Context } from './context';
