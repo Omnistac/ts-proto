@@ -7,8 +7,8 @@
     "outDir": "build",
     "skipLibCheck": true,
     "experimentalDecorators": true,
-    "noImplicitAny": false
+    "noImplicitAny": false,
   },
-  "include": ["src", ".eslintrc.js", "tests"],
+  "include": ["src"],
   "exclude": ["node_modules", "build", "integration"]
 }
